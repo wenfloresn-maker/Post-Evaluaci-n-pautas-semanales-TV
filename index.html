@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GRP Analyzer · Semana 11 · Genomma Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0B0F19;--surface:#131929;--card:#1A2236;--border:#243048;
+  --accent:#F5A623;--blue:#4A9EFF;--green:#3DD68C;--red:#FF5A5A;--yellow:#FFCC00;
+  --text:#E2E8F8;--muted:#8898B8;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;--display:'Syne',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+/* HEADER */
+header{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;height:58px;
+  background:rgba(11,15,25,0.94);border-bottom:1px solid var(--border);
+  backdrop-filter:blur(14px);
+}
+.logo{display:flex;align-items:center;gap:12px;}
+.logo-mark{
+  width:32px;height:32px;background:var(--accent);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--display);font-size:14px;font-weight:800;color:#000;
+}
+.logo-text{font-family:var(--display);font-size:15px;font-weight:700;}
+.logo-sub{font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;}
+.header-right{display:flex;align-items:center;gap:20px;}
+.sem-badge{
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--accent);border:1px solid rgba(245,166,35,.35);
+  padding:4px 12px;border-radius:20px;background:rgba(245,166,35,.07);
+}
+.live-dot{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--muted);}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);}
+
+/* HERO BANNER */
+.hero{
+  padding:40px 28px 32px;
+  background:linear-gradient(135deg,rgba(26,34,54,.9) 0%,rgba(11,15,25,1) 60%);
+  border-bottom:1px solid var(--border);
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;top:-80px;right:-80px;
+  width:360px;height:360px;border-radius:50%;
+  background:radial-gradient(circle,rgba(245,166,35,.08) 0%,transparent 70%);
+}
+.hero-label{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;margin-bottom:8px;}
+.hero-title{font-family:var(--display);font-size:32px;font-weight:800;line-height:1.1;margin-bottom:4px;}
+.hero-title span{color:var(--accent);}
+.hero-sub{font-size:13px;color:var(--muted);}
+
+/* KPI STRIP */
+.kpi-strip{
+  display:grid;grid-template-columns:repeat(6,1fr);gap:1px;
+  background:var(--border);border-bottom:1px solid var(--border);
+}
+.kpi{
+  background:var(--surface);padding:20px 18px;
+  position:relative;overflow:hidden;
+}
+.kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--border);}
+.kpi.g::after{background:var(--green);}
+.kpi.a::after{background:var(--accent);}
+.kpi.r::after{background:var(--red);}
+.kpi.y::after{background:var(--yellow);}
+.kpi-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
+.kpi-val{font-family:var(--display);font-size:26px;font-weight:800;line-height:1;}
+.kpi-val.g{color:var(--green);}
+.kpi-val.a{color:var(--accent);}
+.kpi-val.r{color:var(--red);}
+
+/* MAIN */
+main{padding:28px;max-width:1380px;margin:0 auto;}
+
+/* TABS */
+.tab-bar{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:24px;}
+.tab{
+  padding:10px 18px;font-family:var(--mono);font-size:11px;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+  border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;user-select:none;
+}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* SECTION */
+.sec-title{font-family:var(--display);font-size:17px;font-weight:700;margin-bottom:16px;}
+.sec-sub{font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:16px;margin-top:-10px;}
+
+/* CHARTS GRID */
+.cg2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px;}
+.cg3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:18px;margin-bottom:24px;}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.chart-title{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:14px;}
+.chart-wrap{position:relative;height:260px;}
+.chart-wrap.tall{height:310px;}
+.chart-wrap.sm{height:200px;}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border);margin-bottom:24px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead tr{background:var(--surface);}
+thead th{
+  padding:10px 14px;text-align:left;
+  font-family:var(--mono);font-size:9.5px;font-weight:500;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;
+}
+th.r{text-align:right;}
+tbody tr{border-bottom:1px solid rgba(36,48,72,.5);transition:background .12s;}
+tbody tr:hover{background:rgba(74,158,255,.04);}
+tbody tr:last-child{border-bottom:none;}
+tbody td{padding:10px 14px;color:var(--text);}
+td.r{text-align:right;font-family:var(--mono);font-size:12.5px;}
+td.brand{font-weight:600;font-size:13px;}
+tfoot tr{background:var(--surface);}
+tfoot td{padding:11px 14px;font-family:var(--mono);font-weight:600;font-size:13px;border-top:2px solid var(--border);color:var(--accent);}
+tfoot td.r{text-align:right;}
+
+/* SEMAPHORE */
+.sem{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:50%;font-size:10px;font-weight:700;
+}
+.sem.g{background:rgba(61,214,140,.18);color:var(--green);border:1px solid var(--green);}
+.sem.y{background:rgba(255,204,0,.18);color:var(--yellow);border:1px solid var(--yellow);}
+.sem.r{background:rgba(255,90,90,.18);color:var(--red);border:1px solid var(--red);}
+
+.pos{color:var(--green);font-family:var(--mono);}
+.neg{color:var(--red);font-family:var(--mono);}
+.neu{color:var(--muted);font-family:var(--mono);}
+
+/* PROGRESS */
+.prog-row{display:flex;align-items:center;gap:12px;margin-bottom:9px;}
+.prog-lbl{width:130px;flex-shrink:0;font-size:12px;color:var(--muted);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.prog-bar{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:3px;transition:width .9s cubic-bezier(.4,0,.2,1);}
+.prog-pct{width:46px;text-align:right;font-family:var(--mono);font-size:12px;}
+
+/* HOMO GRID */
+.homo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:24px;}
+.homo-card{
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:12px 16px;display:flex;align-items:center;gap:10px;
+}
+.homo-left,.homo-right{font-family:var(--mono);font-size:11px;font-weight:500;flex:1;}
+.homo-left{color:var(--text);}
+.homo-right{color:var(--accent);}
+.homo-arr{color:var(--muted);font-size:14px;flex-shrink:0;}
+.homo-badge{font-size:9px;padding:2px 8px;border-radius:20px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;flex-shrink:0;}
+.homo-badge.e{background:rgba(61,214,140,.15);color:var(--green);}
+.homo-badge.p{background:rgba(255,204,0,.15);color:var(--yellow);}
+
+/* INC LIST */
+.inc-list{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:24px;}
+.inc-item{padding:13px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;font-size:13px;}
+.inc-item:last-child{border-bottom:none;}
+.inc-ico{font-size:18px;flex-shrink:0;}
+.inc-lbl{font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:2px;}
+.inc-val{color:var(--text);font-weight:500;}
+.inc-ok{color:var(--green);}
+.inc-warn{color:var(--yellow);}
+.inc-err{color:var(--red);}
+
+/* ALERT BANNER */
+.alert-ok{
+  background:rgba(61,214,140,.08);border:1px solid rgba(61,214,140,.3);
+  border-radius:10px;padding:16px 20px;margin-bottom:24px;
+  display:flex;align-items:center;gap:12px;
+  font-size:13px;color:var(--green);
+}
+.alert-ok strong{font-family:var(--display);font-size:15px;}
+
+/* DAYPART LEGEND */
+.dp-legend{display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap;}
+.dp-chip{display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--mono);color:var(--muted);}
+.dp-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+.fade{animation:fadeUp .45s ease both;}
+
+/* FOOTER */
+footer{
+  text-align:center;padding:28px;
+  color:var(--muted);font-family:var(--mono);font-size:11px;
+  border-top:1px solid var(--border);margin-top:40px;
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">GL</div>
+    <div>
+      <div class="logo-text">GRP Analyzer</div>
+      <div class="logo-sub">Post-Evaluación Pautas TV · México</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="sem-badge">Semana 11 · 2026</div>
+    <div class="live-dot"><div class="dot"></div>Análisis activo</div>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-label">Reporte ejecutivo · GRP% HH</div>
+  <div class="hero-title">Plan vs <span>Real</span> · Semana 11</div>
+  <div class="hero-sub">Genomma Lab &nbsp;·&nbsp; 9 marcas &nbsp;·&nbsp; 1,293 registros reales &nbsp;·&nbsp; 3 grupos televisivos</div>
+</div>
+
+<!-- KPI STRIP -->
+<div class="kpi-strip">
+  <div class="kpi a"><div class="kpi-lbl">GRPs Planeados</div><div class="kpi-val a">2,027.00</div></div>
+  <div class="kpi g"><div class="kpi-lbl">GRPs Reales (HH)</div><div class="kpi-val g">2,152.28</div></div>
+  <div class="kpi g"><div class="kpi-lbl">Delta Absoluto</div><div class="kpi-val g">+125.28</div></div>
+  <div class="kpi g"><div class="kpi-lbl">Cumplimiento</div><div class="kpi-val g">106.2%</div></div>
+  <div class="kpi"><div class="kpi-lbl">Marcas</div><div class="kpi-val">9</div></div>
+  <div class="kpi"><div class="kpi-lbl">Registros Real</div><div class="kpi-val">1,293</div></div>
+</div>
+
+<!-- MAIN -->
+<main>
+
+<!-- ALERT -->
+<div class="alert-ok fade">
+  <span style="font-size:22px">🟢</span>
+  <div>
+    <strong>Semana excelente — todas las marcas en verde</strong><br/>
+    <span style="color:var(--muted);font-size:12px">Las 9 marcas superaron o estuvieron muy cercanas al plan. Sin incidencias de match ni datos faltantes.</span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tab-bar">
+  <div class="tab active" onclick="showTab('pvr')">Plan vs Real</div>
+  <div class="tab" onclick="showTab('tv')">Mix Televisora</div>
+  <div class="tab" onclick="showTab('dp')">Mix Daypart</div>
+  <div class="tab" onclick="showTab('qa')">QA · Incidencias</div>
+  <div class="tab" onclick="showTab('homo')">Homologación</div>
+</div>
+
+<!-- ══ TAB: PLAN vs REAL ══ -->
+<div id="tab-pvr" class="tab-content fade">
+  <div class="cg2">
+    <div class="chart-card">
+      <div class="chart-title">GRPs Plan vs Real · Por Marca</div>
+      <div class="chart-wrap"><canvas id="c-pvr"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Cumplimiento % · Por Marca</div>
+      <div class="chart-wrap"><canvas id="c-cumpl"></canvas></div>
+    </div>
+  </div>
+  <div class="sec-title">Detalle por Agrupación de Pauta</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Marca (Plan)</th><th>CAT</th><th>Target</th>
+          <th class="r">GRPs Plan</th><th class="r">GRPs Real (HH)</th>
+          <th class="r">Delta Abs.</th><th class="r">Delta %</th>
+          <th class="r">Cumpl %</th><th style="text-align:center">●</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-pvr"></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3">TOTAL GENERAL</td>
+          <td class="r">2,027.00</td><td class="r">2,152.28</td>
+          <td class="r pos">+125.28</td><td class="r pos">+6.18%</td>
+          <td class="r">106.2%</td>
+          <td style="text-align:center"><span class="sem g">✓</span></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<!-- ══ TAB: MIX TELEVISORA ══ -->
+<div id="tab-tv" class="tab-content fade" style="display:none">
+  <div class="cg2">
+    <div class="chart-card">
+      <div class="chart-title">GRPs Reales por Grupo Televisivo</div>
+      <div class="chart-wrap tall"><canvas id="c-tv-bar"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Mix % Televisora (GRP% HH)</div>
+      <div class="chart-wrap tall"><canvas id="c-tv-pie"></canvas></div>
+    </div>
+  </div>
+  <div class="sec-title">Distribución por Grupo Televisivo</div>
+  <div id="tv-prog" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px;"></div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Network (Grupo TV)</th><th class="r">GRPs Real (HH)</th><th class="r">Mix %</th></tr></thead>
+      <tbody id="tbody-tv"></tbody>
+      <tfoot><tr><td>TOTAL</td><td class="r">2,152.28</td><td class="r">100.0%</td></tr></tfoot>
+    </table>
+  </div>
+</div>
+
+<!-- ══ TAB: MIX DAYPART ══ -->
+<div id="tab-dp" class="tab-content fade" style="display:none">
+  <div class="cg2">
+    <div class="chart-card">
+      <div class="chart-title">Mix % Daypart por Televisora (apilado 100%)</div>
+      <div class="dp-legend" id="dp-legend"></div>
+      <div class="chart-wrap"><canvas id="c-dp-stack"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Mix % Daypart — Total Semana</div>
+      <div class="chart-wrap"><canvas id="c-dp-pie"></canvas></div>
+    </div>
+  </div>
+  <div class="sec-title">Detalle Daypart por Televisora</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead id="thead-dp"></thead>
+      <tbody id="tbody-dp"></tbody>
+      <tfoot id="tfoot-dp"></tfoot>
+    </table>
+  </div>
+</div>
+
+<!-- ══ TAB: QA ══ -->
+<div id="tab-qa" class="tab-content fade" style="display:none">
+  <div class="sec-title">1. Registros Reales sin Equivalente en Plan</div>
+  <div class="inc-list">
+    <div class="inc-item">
+      <span class="inc-ico">✅</span>
+      <div><div class="inc-val inc-ok">Sin registros reales fuera del plan — cobertura total 100%</div></div>
+    </div>
+  </div>
+  <div class="sec-title">2. Marcas del Plan sin Datos Reales</div>
+  <div class="inc-list">
+    <div class="inc-item">
+      <span class="inc-ico">✅</span>
+      <div><div class="inc-val inc-ok">Todas las marcas del plan tienen datos reales correspondientes</div></div>
+    </div>
+  </div>
+  <div class="sec-title">3. Homologaciones Parciales (requieren revisión manual en próximas semanas)</div>
+  <div class="inc-list">
+    <div class="inc-item"><span class="inc-ico">🟡</span><div><div class="inc-lbl">Nombre diferente en real — confirmado usuario</div><div class="inc-val inc-warn" style="font-family:var(--mono);font-size:12px">LOMECAN V OVULOS → LOMECAN 1 OVULO</div></div></div>
+    <div class="inc-item"><span class="inc-ico">🟡</span><div><div class="inc-lbl">Variación de espaciado — confirmado usuario</div><div class="inc-val inc-warn" style="font-family:var(--mono);font-size:12px">SILKA MEDIC SPRAY → SILKAMEDIC SPRAY</div></div></div>
+    <div class="inc-item"><span class="inc-ico">🟡</span><div><div class="inc-lbl">Nombre abreviado en real — confirmado usuario</div><div class="inc-val inc-warn" style="font-family:var(--mono);font-size:12px">TEATRICAL EFECTO PIEL COREANA → TEATRICAL PIEL COREANA</div></div></div>
+    <div class="inc-item"><span class="inc-ico">🟡</span><div><div class="inc-lbl">Real incluye "MEXICANA" — confirmado usuario</div><div class="inc-val inc-warn" style="font-family:var(--mono);font-size:12px">TIO NACHO HERBOLARIA → TIO NACHO HERBOLARIA MEXICANA</div></div></div>
+  </div>
+  <div class="sec-title">4. Semáforo de Cumplimiento</div>
+  <div class="inc-list">
+    <div class="inc-item"><span class="sem g" style="width:32px;height:32px">✓</span><div><div class="inc-lbl">Verde — Cumplimiento satisfactorio</div><div class="inc-val inc-ok">Delta% ≥ −5% · Real alcanza o supera el plan</div></div></div>
+    <div class="inc-item"><span class="sem y" style="width:32px;height:32px">!</span><div><div class="inc-lbl">Amarillo — Atención</div><div class="inc-val inc-warn">Delta% entre −5% y −15%</div></div></div>
+    <div class="inc-item"><span class="sem r" style="width:32px;height:32px">✗</span><div><div class="inc-lbl">Rojo — Incumplimiento significativo</div><div class="inc-val inc-err">Delta% &lt; −15%</div></div></div>
+  </div>
+</div>
+
+<!-- ══ TAB: HOMOLOGACIÓN ══ -->
+<div id="tab-homo" class="tab-content fade" style="display:none">
+  <div class="sec-title">Tabla de Homologación Plan → Real · Semana 11</div>
+  <div class="sec-sub">Confirmada por usuario en sesión de inspección · Verificar en semanas posteriores</div>
+  <div class="homo-grid" id="homo-grid"></div>
+  <div class="sec-title">Daypart Ejecutivo</div>
+  <div class="inc-list">
+    <div class="inc-item"><span style="font-family:var(--mono);font-size:12px;color:var(--muted);width:160px;flex-shrink:0">00:00 – 05:59</span><div class="inc-val">🌙 Madrugada</div></div>
+    <div class="inc-item"><span style="font-family:var(--mono);font-size:12px;color:var(--muted);width:160px;flex-shrink:0">06:00 – 11:59</span><div class="inc-val">🌅 Mañana</div></div>
+    <div class="inc-item"><span style="font-family:var(--mono);font-size:12px;color:var(--muted);width:160px;flex-shrink:0">12:00 – 18:59</span><div class="inc-val">☀️ Tarde</div></div>
+    <div class="inc-item"><span style="font-family:var(--mono);font-size:12px;color:var(--muted);width:160px;flex-shrink:0">19:00 – 23:59</span><div class="inc-val">⭐ Prime</div></div>
+  </div>
+</div>
+
+</main>
+<footer>GRP Analyzer · Genomma Lab · Semana 11 · 2026 &nbsp;·&nbsp; Métrica: GRP% HH · Plan: 2,027.00 · Real: 2,152.28 · Cumplimiento: 106.2%</footer>
+
+<script>
+/* ══ DATA ══════════════════════════════════════════════════════ */
+const DATA = {
+  plan:[
+    {AP:"CICATRICURE GOLD",CAT:"PC",TARGET:"Mujeres 30+",GRPS_PLAN:250,GRPS_REAL:255.7964,DELTA_ABS:5.7964,DELTA_PCT:2.32,CUMPL_PCT:102.32},
+    {AP:"LOMECAN V OVULOS",CAT:"OTC",TARGET:"Mujeres 15-25",GRPS_PLAN:250,GRPS_REAL:243.4193,DELTA_ABS:-6.5807,DELTA_PCT:-2.63,CUMPL_PCT:97.37},
+    {AP:"MEDICASP",CAT:"MM",TARGET:"Personas 19-44",GRPS_PLAN:150,GRPS_REAL:162.8513,DELTA_ABS:12.8513,DELTA_PCT:8.57,CUMPL_PCT:108.57},
+    {AP:"NIKZON",CAT:"OTC",TARGET:"Personas 30+",GRPS_PLAN:300,GRPS_REAL:334.0849,DELTA_ABS:34.0849,DELTA_PCT:11.36,CUMPL_PCT:111.36},
+    {AP:"SILKA MEDIC GEL",CAT:"OTC",TARGET:"Personas 19-44",GRPS_PLAN:200,GRPS_REAL:202.605,DELTA_ABS:2.605,DELTA_PCT:1.3,CUMPL_PCT:101.3},
+    {AP:"SILKA MEDIC SPRAY",CAT:"OTC",TARGET:"Personas 19-44",GRPS_PLAN:200,GRPS_REAL:216.8512,DELTA_ABS:16.8512,DELTA_PCT:8.43,CUMPL_PCT:108.43},
+    {AP:"TEATRICAL EFECTO PIEL COREANA",CAT:"PC",TARGET:"Mujeres 30+",GRPS_PLAN:250,GRPS_REAL:270.595,DELTA_ABS:20.595,DELTA_PCT:8.24,CUMPL_PCT:108.24},
+    {AP:"TIO NACHO HERBOLARIA",CAT:"PC",TARGET:"Hombres 30+",GRPS_PLAN:227,GRPS_REAL:252.7099,DELTA_ABS:25.7099,DELTA_PCT:11.33,CUMPL_PCT:111.33},
+    {AP:"UNESIA",CAT:"OTC",TARGET:"Personas 19-44",GRPS_PLAN:200,GRPS_REAL:213.3689,DELTA_ABS:13.3689,DELTA_PCT:6.68,CUMPL_PCT:106.68},
+  ],
+  mix_tv:[
+    {net:"TV AZTECA",grp:1390.0612,pct:64.59},
+    {net:"MULTIMEDIOS",grp:445.3216,pct:20.69},
+    {net:"GRUPO IMAGEN",grp:316.8992,pct:14.72},
+  ],
+  mix_dp:[
+    {dp:"Madrugada",grp:50.2852,pct:2.34},
+    {dp:"Mañana",grp:402.4197,pct:18.7},
+    {dp:"Tarde",grp:643.2933,pct:29.89},
+    {dp:"Prime",grp:1056.2837,pct:49.08},
+  ],
+  dp_net:[
+    {net:"GRUPO IMAGEN",Madrugada:0,Mañana:49.2355,Tarde:115.7663,Prime:151.8973,TOTAL:316.8991,MIX_Madrugada:0,MIX_Mañana:15.54,MIX_Tarde:36.53,MIX_Prime:47.93},
+    {net:"MULTIMEDIOS",Madrugada:10.9533,Mañana:184.7251,Tarde:176.1336,Prime:73.5097,TOTAL:445.3217,MIX_Madrugada:2.46,MIX_Mañana:41.48,MIX_Tarde:39.55,MIX_Prime:16.51},
+    {net:"TV AZTECA",Madrugada:39.332,Mañana:168.4591,Tarde:351.3934,Prime:830.8767,TOTAL:1390.0612,MIX_Madrugada:2.83,MIX_Mañana:12.12,MIX_Tarde:25.28,MIX_Prime:59.77},
+  ],
+  homo:[
+    {plan:"CICATRICURE GOLD",real:"CICATRICURE GOLD",tipo:"Exacto"},
+    {plan:"LOMECAN V OVULOS",real:"LOMECAN 1 OVULO",tipo:"Parcial"},
+    {plan:"MEDICASP",real:"MEDICASP",tipo:"Exacto"},
+    {plan:"NIKZON",real:"NIKZON",tipo:"Exacto"},
+    {plan:"SILKA MEDIC GEL",real:"SILKA MEDIC GEL",tipo:"Exacto"},
+    {plan:"SILKA MEDIC SPRAY",real:"SILKAMEDIC SPRAY",tipo:"Parcial"},
+    {plan:"TEATRICAL EFECTO PIEL COREANA",real:"TEATRICAL PIEL COREANA",tipo:"Parcial"},
+    {plan:"TIO NACHO HERBOLARIA",real:"TIO NACHO HERBOLARIA MEXICANA",tipo:"Parcial"},
+    {plan:"UNESIA",real:"UNESIA",tipo:"Exacto"},
+  ]
+};
+
+const DAYPARTS = ["Madrugada","Mañana","Tarde","Prime"];
+const DP_COLORS = ["#1F4E79","#4A9EFF","#9DC3E6","#F5A623"];
+const TV_COLORS = ["#4A9EFF","#F5A623","#3DD68C"];
+
+function f2(n){return(+n||0).toFixed(2);}
+function f1(n){return(+n||0).toFixed(1);}
+function fs(n){return n>=0?"+"+f2(n):f2(n);}
+function sem(dp){if(dp>=-5)return{c:"g",i:"✓"};if(dp>=-15)return{c:"y",i:"!"};return{c:"r",i:"✗"};}
+
+/* ══ RENDER PVR TABLE ══════════════════════════════════════════ */
+function buildPVR(){
+  const tb=document.getElementById("tbody-pvr");
+  DATA.plan.forEach(r=>{
+    const s=sem(r.DELTA_PCT);
+    const dc=r.DELTA_ABS>=0?"pos":"neg";
+    const ab=r.AP.length>22?r.AP.slice(0,20)+"…":r.AP;
+    tb.innerHTML+=`<tr>
+      <td class="brand" title="${r.AP}">${ab}</td>
+      <td><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${r.CAT}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${r.TARGET}</td>
+      <td class="r">${f2(r.GRPS_PLAN)}</td>
+      <td class="r">${f2(r.GRPS_REAL)}</td>
+      <td class="r ${dc}">${fs(r.DELTA_ABS)}</td>
+      <td class="r ${dc}">${fs(r.DELTA_PCT)}%</td>
+      <td class="r">${f1(r.CUMPL_PCT)}%</td>
+      <td style="text-align:center"><span class="sem ${s.c}">${s.i}</span></td>
+    </tr>`;
+  });
+}
+
+/* ══ CHARTS PVR ════════════════════════════════════════════════ */
+function buildChartPVR(){
+  const labels=DATA.plan.map(r=>r.AP.length>14?r.AP.slice(0,12)+"…":r.AP);
+  const plan=DATA.plan.map(r=>r.GRPS_PLAN);
+  const real=DATA.plan.map(r=>+r.GRPS_REAL.toFixed(2));
+  new Chart(document.getElementById("c-pvr"),{
+    type:"bar",
+    data:{labels,datasets:[
+      {label:"Plan",data:plan,backgroundColor:"rgba(74,158,255,0.82)",borderRadius:4,borderSkipped:false},
+      {label:"Real",data:real,backgroundColor:"rgba(61,214,140,0.82)",borderRadius:4,borderSkipped:false},
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:"#8898B8",font:{size:11},boxWidth:12}},
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${f2(c.parsed.y)} GRPs`}}},
+      scales:{
+        x:{ticks:{color:"#8898B8",font:{size:9}},grid:{color:"rgba(36,48,72,0.4)"}},
+        y:{ticks:{color:"#8898B8",font:{size:10}},grid:{color:"rgba(36,48,72,0.4)"},
+           title:{display:true,text:"GRPs",color:"#8898B8",font:{size:10}}}
+      }
+    }
+  });
+
+  const bgC=DATA.plan.map(r=>{
+    const d=r.DELTA_PCT;
+    if(d>=-5)return"rgba(61,214,140,0.82)";
+    if(d>=-15)return"rgba(255,204,0,0.82)";
+    return"rgba(255,90,90,0.82)";
+  });
+  new Chart(document.getElementById("c-cumpl"),{
+    type:"bar",
+    data:{labels,datasets:[{label:"Cumplimiento %",data:DATA.plan.map(r=>+r.CUMPL_PCT.toFixed(1)),backgroundColor:bgC,borderRadius:4,borderSkipped:false}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:c=>`Cumpl: ${c.parsed.y.toFixed(1)}%`}},
+        annotation:{annotations:{line100:{type:'line',yMin:100,yMax:100,borderColor:'rgba(245,166,35,0.5)',borderWidth:1,borderDash:[4,4]}}}},
+      scales:{
+        x:{ticks:{color:"#8898B8",font:{size:9}},grid:{color:"rgba(36,48,72,0.4)"}},
+        y:{ticks:{color:"#8898B8",font:{size:10}},grid:{color:"rgba(36,48,72,0.4)"},
+           title:{display:true,text:"Cumpl %",color:"#8898B8",font:{size:10}},min:80}
+      }
+    }
+  });
+}
+
+/* ══ RENDER TV ═════════════════════════════════════════════════ */
+function buildTV(){
+  const tb=document.getElementById("tbody-tv");
+  DATA.mix_tv.forEach((r,i)=>{
+    tb.innerHTML+=`<tr>
+      <td style="display:flex;align-items:center;gap:10px">
+        <span style="width:10px;height:10px;border-radius:2px;background:${TV_COLORS[i]};display:inline-block;flex-shrink:0"></span>
+        ${r.net}
+      </td>
+      <td class="r">${f2(r.grp)}</td>
+      <td class="r">${f1(r.pct)}%</td>
+    </tr>`;
+  });
+
+  // Progress bars
+  const prog=document.getElementById("tv-prog");
+  prog.innerHTML="";
+  DATA.mix_tv.forEach((r,i)=>{
+    prog.innerHTML+=`<div class="prog-row">
+      <div class="prog-lbl">${r.net}</div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${r.pct}%;background:${TV_COLORS[i]}"></div></div>
+      <div class="prog-pct" style="color:${TV_COLORS[i]}">${f1(r.pct)}%</div>
+    </div>`;
+  });
+
+  // Charts
+  const labels=DATA.mix_tv.map(r=>r.net);
+  const vals=DATA.mix_tv.map(r=>+r.grp.toFixed(2));
+  new Chart(document.getElementById("c-tv-bar"),{
+    type:"bar",
+    data:{labels,datasets:[{data:vals,backgroundColor:TV_COLORS,borderRadius:6,borderSkipped:false}]},
+    options:{
+      indexAxis:"y",responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:c=>`${f2(c.parsed.x)} GRPs (${(c.parsed.x/2152.28*100).toFixed(1)}%)`}}},
+      scales:{
+        x:{ticks:{color:"#8898B8",font:{size:10}},grid:{color:"rgba(36,48,72,0.4)"},title:{display:true,text:"GRP% HH",color:"#8898B8"}},
+        y:{ticks:{color:"#8898B8",font:{size:11}},grid:{display:false}}
+      }
+    }
+  });
+  new Chart(document.getElementById("c-tv-pie"),{
+    type:"doughnut",
+    data:{labels,datasets:[{data:vals,backgroundColor:TV_COLORS,borderWidth:2,borderColor:"#1A2236",hoverOffset:8}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:"bottom",labels:{color:"#8898B8",font:{size:11},boxWidth:12,padding:16}},
+        tooltip:{callbacks:{label:c=>`${c.label}: ${f2(c.parsed)} GRPs (${(c.parsed/2152.28*100).toFixed(1)}%)`}}
+      },
+      cutout:"62%"
+    }
+  });
+}
+
+/* ══ RENDER DAYPART ════════════════════════════════════════════ */
+function buildDP(){
+  // Legend
+  const leg=document.getElementById("dp-legend");
+  DAYPARTS.forEach((d,i)=>{
+    leg.innerHTML+=`<div class="dp-chip"><span class="dp-dot" style="background:${DP_COLORS[i]}"></span>${d}</div>`;
+  });
+
+  // Table
+  const thead=document.getElementById("thead-dp");
+  thead.innerHTML=`<tr><th>Network</th>${DAYPARTS.map(d=>`<th class="r">${d}</th>`).join("")}<th class="r">Total GRPs</th>${DAYPARTS.map(d=>`<th class="r">Mix% ${d}</th>`).join("")}</tr>`;
+  const tbody=document.getElementById("tbody-dp");
+  let totDP={};DAYPARTS.forEach(d=>totDP[d]=0);let grandTot=0;
+  DATA.dp_net.forEach(r=>{
+    tbody.innerHTML+=`<tr>
+      <td style="font-weight:600">${r.net}</td>
+      ${DAYPARTS.map(d=>`<td class="r">${f2(r[d])}</td>`).join("")}
+      <td class="r" style="color:var(--accent)">${f2(r.TOTAL)}</td>
+      ${DAYPARTS.map(d=>`<td class="r">${f1(r["MIX_"+d])}%</td>`).join("")}
+    </tr>`;
+    DAYPARTS.forEach(d=>totDP[d]+=r[d]);
+    grandTot+=r.TOTAL;
+  });
+  document.getElementById("tfoot-dp").innerHTML=`<tr>
+    <td>TOTAL</td>
+    ${DAYPARTS.map(d=>`<td class="r">${f2(totDP[d])}</td>`).join("")}
+    <td class="r">${f2(grandTot)}</td>
+    ${DAYPARTS.map(d=>`<td class="r">${f1(totDP[d]/grandTot*100)}%</td>`).join("")}
+  </tr>`;
+
+  // Stacked chart
+  new Chart(document.getElementById("c-dp-stack"),{
+    type:"bar",
+    data:{
+      labels:DATA.dp_net.map(r=>r.net),
+      datasets:DAYPARTS.map((d,i)=>({
+        label:d,
+        data:DATA.dp_net.map(r=>+r["MIX_"+d].toFixed(1)),
+        backgroundColor:DP_COLORS[i],borderWidth:0,
+      }))
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}}},
+      scales:{
+        x:{stacked:true,ticks:{color:"#8898B8",font:{size:10}},grid:{color:"rgba(36,48,72,0.4)"}},
+        y:{stacked:true,ticks:{color:"#8898B8",font:{size:10}},grid:{color:"rgba(36,48,72,0.4)"},max:100,title:{display:true,text:"Mix %",color:"#8898B8"}}
+      }
+    }
+  });
+
+  // Pie total daypart
+  new Chart(document.getElementById("c-dp-pie"),{
+    type:"doughnut",
+    data:{
+      labels:DATA.mix_dp.map(r=>r.dp),
+      datasets:[{data:DATA.mix_dp.map(r=>+r.grp.toFixed(2)),backgroundColor:DP_COLORS,borderWidth:2,borderColor:"#1A2236",hoverOffset:8}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:"bottom",labels:{color:"#8898B8",font:{size:11},boxWidth:12,padding:14}},
+        tooltip:{callbacks:{label:c=>`${c.label}: ${f1(c.parsed/2152.28*100)}% (${f2(c.parsed)} GRPs)`}}
+      },
+      cutout:"58%"
+    }
+  });
+}
+
+/* ══ RENDER HOMO ════════════════════════════════════════════════ */
+function buildHomo(){
+  const g=document.getElementById("homo-grid");
+  DATA.homo.forEach(h=>{
+    const cls=h.tipo==="Exacto"?"e":"p";
+    g.innerHTML+=`<div class="homo-card">
+      <div class="homo-left">${h.plan}</div>
+      <div class="homo-arr">→</div>
+      <div class="homo-right">${h.real}</div>
+      <span class="homo-badge ${cls}">${h.tipo}</span>
+    </div>`;
+  });
+}
+
+/* ══ TABS ═══════════════════════════════════════════════════════ */
+function showTab(id){
+  document.querySelectorAll(".tab-content").forEach(el=>el.style.display="none");
+  document.querySelectorAll(".tab").forEach(el=>el.classList.remove("active"));
+  document.getElementById("tab-"+id).style.display="block";
+  const map={pvr:0,tv:1,dp:2,qa:3,homo:4};
+  document.querySelectorAll(".tab")[map[id]].classList.add("active");
+}
+
+/* ══ INIT ════════════════════════════════════════════════════════ */
+buildPVR();
+buildChartPVR();
+buildTV();
+buildDP();
+buildHomo();
+</script>
+</body>
+</html>
