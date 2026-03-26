@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GRP Analyzer · Genomma Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:       #0B0F19;
+  --surface:  #131929;
+  --card:     #1A2236;
+  --border:   #243048;
+  --accent:   #F5A623;
+  --accent2:  #E8F5E9;
+  --blue:     #4A9EFF;
+  --green:    #3DD68C;
+  --red:      #FF5A5A;
+  --yellow:   #FFCC00;
+  --text:     #E2E8F8;
+  --muted:    #8898B8;
+  --mono:     'IBM Plex Mono', monospace;
+  --sans:     'IBM Plex Sans', sans-serif;
+  --display:  'Syne', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:14px;
+  line-height:1.6;
+  min-height:100vh;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+/* ── HEADER ── */
+header{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 32px;
+  height:60px;
+  background:rgba(11,15,25,0.92);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(12px);
+}
+.logo{
+  display:flex;align-items:center;gap:12px;
+}
+.logo-mark{
+  width:34px;height:34px;
+  background:var(--accent);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--display);
+  font-size:16px;font-weight:800;
+  color:#000;
+  letter-spacing:-0.5px;
+}
+.logo-text{
+  font-family:var(--display);
+  font-size:15px;font-weight:700;
+  color:var(--text);
+  letter-spacing:0.02em;
+}
+.logo-sub{
+  font-size:10px;
+  font-family:var(--mono);
+  color:var(--muted);
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+}
+.header-badge{
+  font-family:var(--mono);
+  font-size:10px;
+  color:var(--accent);
+  border:1px solid var(--accent);
+  padding:3px 10px;
+  border-radius:20px;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+}
+.header-status{
+  display:flex;align-items:center;gap:8px;
+  font-size:12px;color:var(--muted);
+}
+.status-dot{
+  width:7px;height:7px;
+  border-radius:50%;
+  background:var(--muted);
+  transition:background .4s;
+}
+.status-dot.ready{background:var(--green);box-shadow:0 0 6px var(--green);}
+
+/* ── UPLOAD SECTION ── */
+#upload-section{
+  max-width:900px;margin:80px auto;padding:0 24px;
+  animation:fadeUp .6s ease both;
+}
+.upload-title{
+  font-family:var(--display);
+  font-size:36px;font-weight:800;
+  color:var(--text);
+  line-height:1.1;
+  margin-bottom:8px;
+}
+.upload-title span{color:var(--accent);}
+.upload-sub{
+  font-size:14px;color:var(--muted);
+  margin-bottom:48px;
+}
+.upload-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:20px;
+  margin-bottom:32px;
+}
+.upload-card{
+  border:2px dashed var(--border);
+  border-radius:16px;
+  padding:40px 28px;
+  text-align:center;
+  transition:all .25s;
+  cursor:pointer;
+  position:relative;
+  overflow:hidden;
+}
+.upload-card::before{
+  content:'';
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%, rgba(245,166,35,0.05) 0%, transparent 60%);
+  opacity:0;transition:opacity .3s;
+}
+.upload-card:hover::before,.upload-card.active::before{opacity:1;}
+.upload-card:hover,.upload-card.active{
+  border-color:var(--accent);
+  background:rgba(245,166,35,0.04);
+}
+.upload-card.loaded{
+  border-color:var(--green);
+  border-style:solid;
+  background:rgba(61,214,140,0.04);
+}
+.upload-card input[type=file]{
+  position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
+}
+.upload-icon{
+  font-size:36px;margin-bottom:16px;
+  display:block;
+  filter:grayscale(0.3);
+}
+.upload-label{
+  font-family:var(--display);
+  font-size:16px;font-weight:700;
+  color:var(--text);margin-bottom:6px;
+}
+.upload-hint{
+  font-size:12px;color:var(--muted);
+  font-family:var(--mono);
+}
+.upload-filename{
+  display:none;
+  margin-top:14px;
+  font-size:12px;
+  font-family:var(--mono);
+  color:var(--green);
+  padding:6px 12px;
+  background:rgba(61,214,140,0.1);
+  border-radius:6px;
+  word-break:break-all;
+}
+.upload-card.loaded .upload-filename{display:block;}
+.btn-analyze{
+  width:100%;padding:16px;
+  background:var(--accent);
+  color:#000;
+  border:none;border-radius:12px;
+  font-family:var(--display);
+  font-size:16px;font-weight:700;
+  cursor:pointer;
+  transition:all .2s;
+  letter-spacing:0.02em;
+}
+.btn-analyze:hover:not(:disabled){background:#FFB833;transform:translateY(-1px);}
+.btn-analyze:disabled{opacity:.35;cursor:not-allowed;}
+.btn-analyze.processing{
+  background:var(--card);
+  color:var(--accent);
+  border:1px solid var(--accent);
+  cursor:not-allowed;
+  animation:pulse 1.2s ease infinite;
+}
+
+/* ── DASHBOARD ── */
+#dashboard{
+  display:none;
+  padding:32px;
+  max-width:1400px;
+  margin:0 auto;
+  animation:fadeUp .5s ease both;
+}
+#dashboard.visible{display:block;}
+
+/* ── KPI CARDS ── */
+.kpi-grid{
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:12px;
+  margin-bottom:28px;
+}
+.kpi-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:20px 16px;
+  position:relative;
+  overflow:hidden;
+}
+.kpi-card::after{
+  content:'';
+  position:absolute;
+  bottom:0;left:0;right:0;
+  height:2px;
+  background:var(--accent);
+}
+.kpi-card.green::after{background:var(--green);}
+.kpi-card.red::after{background:var(--red);}
+.kpi-card.yellow::after{background:var(--yellow);}
+.kpi-label{
+  font-family:var(--mono);
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:0.15em;
+  color:var(--muted);
+  margin-bottom:8px;
+}
+.kpi-value{
+  font-family:var(--display);
+  font-size:24px;font-weight:800;
+  color:var(--text);
+  line-height:1;
+}
+.kpi-value.accent{color:var(--accent);}
+.kpi-value.green{color:var(--green);}
+.kpi-value.red{color:var(--red);}
+.kpi-value.yellow{color:var(--yellow);}
+
+/* ── SECTION TITLES ── */
+.section{margin-bottom:32px;}
+.section-header{
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:16px;
+}
+.section-title{
+  font-family:var(--display);
+  font-size:18px;font-weight:700;
+  color:var(--text);
+}
+.section-pill{
+  font-family:var(--mono);
+  font-size:9px;
+  letter-spacing:0.15em;
+  text-transform:uppercase;
+  color:var(--muted);
+  border:1px solid var(--border);
+  padding:3px 10px;
+  border-radius:20px;
+}
+
+/* ── TABLES ── */
+.table-wrap{
+  overflow-x:auto;
+  border-radius:12px;
+  border:1px solid var(--border);
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+thead tr{background:var(--surface);}
+thead th{
+  padding:11px 14px;
+  text-align:left;
+  font-family:var(--mono);
+  font-size:10px;
+  font-weight:500;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+  color:var(--muted);
+  border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+thead th.num{text-align:right;}
+tbody tr{
+  border-bottom:1px solid rgba(36,48,72,0.6);
+  transition:background .15s;
+}
+tbody tr:hover{background:rgba(74,158,255,0.04);}
+tbody tr:last-child{border-bottom:none;}
+tbody td{
+  padding:10px 14px;
+  color:var(--text);
+}
+tbody td.num{
+  text-align:right;
+  font-family:var(--mono);
+  font-size:13px;
+}
+tbody td.brand{
+  font-family:var(--sans);
+  font-weight:600;
+  font-size:13px;
+}
+tfoot tr{background:var(--surface);}
+tfoot td{
+  padding:11px 14px;
+  font-family:var(--mono);
+  font-weight:600;
+  font-size:13px;
+  border-top:2px solid var(--border);
+  color:var(--accent);
+}
+tfoot td.num{text-align:right;}
+
+/* ── SEMAPHORE ── */
+.sem{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:28px;height:28px;border-radius:50%;
+  font-size:10px;font-weight:700;
+}
+.sem.verde{background:rgba(61,214,140,0.2);color:var(--green);border:1px solid var(--green);}
+.sem.amarillo{background:rgba(255,204,0,0.2);color:var(--yellow);border:1px solid var(--yellow);}
+.sem.rojo{background:rgba(255,90,90,0.2);color:var(--red);border:1px solid var(--red);}
+
+.delta-pos{color:var(--green);font-family:var(--mono);}
+.delta-neg{color:var(--red);font-family:var(--mono);}
+.delta-neu{color:var(--muted);font-family:var(--mono);}
+
+/* ── CHARTS GRID ── */
+.charts-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px;
+  margin-bottom:28px;
+}
+.charts-grid.trio{grid-template-columns:2fr 1fr 1fr;}
+.chart-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:20px;
+}
+.chart-card-title{
+  font-family:var(--display);
+  font-size:13px;font-weight:700;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+  margin-bottom:16px;
+}
+.chart-wrap{position:relative;height:260px;}
+.chart-wrap.tall{height:320px;}
+
+/* ── HOMOLOGATION TABLE ── */
+.homo-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:10px;
+}
+.homo-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:12px 16px;
+  display:flex;align-items:center;gap:12px;
+}
+.homo-left,.homo-right{
+  font-family:var(--mono);
+  font-size:11px;font-weight:500;
+  flex:1;
+}
+.homo-left{color:var(--text);}
+.homo-right{color:var(--accent);}
+.homo-arrow{color:var(--muted);font-size:16px;}
+.homo-badge{
+  font-size:9px;
+  padding:2px 8px;border-radius:20px;
+  font-family:var(--mono);
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  flex-shrink:0;
+}
+.homo-badge.exacto{background:rgba(61,214,140,0.15);color:var(--green);}
+.homo-badge.parcial{background:rgba(255,204,0,0.15);color:var(--yellow);}
+
+/* ── INCIDENCIAS ── */
+.inc-list{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  overflow:hidden;
+}
+.inc-item{
+  padding:12px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:16px;
+  font-size:13px;
+}
+.inc-item:last-child{border-bottom:none;}
+.inc-icon{font-size:16px;flex-shrink:0;}
+.inc-label{color:var(--muted);font-family:var(--mono);font-size:11px;margin-bottom:2px;}
+.inc-value{color:var(--text);font-weight:500;}
+.inc-ok{color:var(--green);}
+.inc-warn{color:var(--yellow);}
+.inc-err{color:var(--red);}
+
+/* ── PROGRESS BARS ── */
+.progress-row{
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:8px;
+}
+.progress-label{
+  width:140px;flex-shrink:0;
+  font-size:12px;color:var(--muted);
+  font-family:var(--mono);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.progress-bar{
+  flex:1;height:6px;
+  background:var(--border);
+  border-radius:3px;overflow:hidden;
+}
+.progress-fill{
+  height:100%;border-radius:3px;
+  background:var(--accent);
+  transition:width .8s cubic-bezier(.4,0,.2,1);
+}
+.progress-pct{
+  width:44px;text-align:right;
+  font-family:var(--mono);font-size:12px;
+  color:var(--text);flex-shrink:0;
+}
+
+/* ── RESET BUTTON ── */
+.btn-reset{
+  display:inline-flex;align-items:center;gap:8px;
+  background:transparent;
+  border:1px solid var(--border);
+  color:var(--muted);
+  padding:8px 16px;border-radius:8px;
+  font-size:12px;font-family:var(--mono);
+  cursor:pointer;
+  transition:all .2s;
+  margin-bottom:28px;
+}
+.btn-reset:hover{border-color:var(--red);color:var(--red);}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(24px);}
+  to{opacity:1;transform:translateY(0);}
+}
+@keyframes pulse{
+  0%,100%{opacity:1;}50%{opacity:.6;}
+}
+.fade-in{animation:fadeUp .5s ease both;}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:28px;right:28px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:14px 20px;
+  font-size:13px;
+  max-width:360px;
+  z-index:999;
+  transform:translateY(80px);
+  opacity:0;
+  transition:all .35s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+}
+#toast.show{transform:translateY(0);opacity:1;}
+#toast.error{border-color:var(--red);color:var(--red);}
+#toast.success{border-color:var(--green);color:var(--green);}
+
+/* ── TABS ── */
+.tab-bar{
+  display:flex;gap:4px;
+  border-bottom:1px solid var(--border);
+  margin-bottom:20px;
+}
+.tab{
+  padding:10px 18px;
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--muted);
+  border-bottom:2px solid transparent;
+  cursor:pointer;
+  transition:all .2s;
+  user-select:none;
+}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* ── FOOTER ── */
+footer{
+  text-align:center;
+  padding:32px;
+  color:var(--muted);
+  font-family:var(--mono);
+  font-size:11px;
+  border-top:1px solid var(--border);
+  margin-top:48px;
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">GL</div>
+    <div>
+      <div class="logo-text">GRP Analyzer</div>
+      <div class="logo-sub">Post-Evaluación Pautas TV · México</div>
+    </div>
+  </div>
+  <div class="header-badge">Genomma Lab</div>
+  <div class="header-status">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-text">Sin datos cargados</span>
+  </div>
+</header>
+
+<!-- UPLOAD SECTION -->
+<div id="upload-section">
+  <div class="upload-title">Análisis<br/><span>Plan vs Real</span> GRPs</div>
+  <div class="upload-sub">Carga los dos archivos Excel para generar el reporte ejecutivo de semana</div>
+  <div class="upload-grid">
+    <!-- Plan -->
+    <div class="upload-card" id="card-plan" ondragover="event.preventDefault();this.classList.add('active')" ondragleave="this.classList.remove('active')" ondrop="dropFile(event,'plan')">
+      <input type="file" accept=".xlsx,.xls" id="file-plan" onchange="handleFile(this,'plan')"/>
+      <span class="upload-icon">📋</span>
+      <div class="upload-label">Plan Semanal</div>
+      <div class="upload-hint">2026 Sem XX.xlsx</div>
+      <div class="upload-filename" id="fname-plan"></div>
+    </div>
+    <!-- Real -->
+    <div class="upload-card" id="card-real" ondragover="event.preventDefault();this.classList.add('active')" ondragleave="this.classList.remove('active')" ondrop="dropFile(event,'real')">
+      <input type="file" accept=".xlsx,.xls" id="file-real" onchange="handleFile(this,'real')"/>
+      <span class="upload-icon">📡</span>
+      <div class="upload-label">Base Transmisión Real</div>
+      <div class="upload-hint">Base transmisión Genomma Lab SXX.xlsx</div>
+      <div class="upload-filename" id="fname-real"></div>
+    </div>
+  </div>
+  <button class="btn-analyze" id="btn-analyze" disabled onclick="analyze()">
+    Generar Análisis →
+  </button>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <button class="btn-reset" onclick="reset()">← Cargar nuevos archivos</button>
+
+  <!-- KPIs -->
+  <div class="kpi-grid" id="kpi-grid"></div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <div class="tab active" onclick="showTab('comparativo')">Plan vs Real</div>
+    <div class="tab" onclick="showTab('mix-tv')">Mix Televisora</div>
+    <div class="tab" onclick="showTab('mix-daypart')">Mix Daypart</div>
+    <div class="tab" onclick="showTab('incidencias')">Incidencias QA</div>
+    <div class="tab" onclick="showTab('homologacion')">Homologación</div>
+  </div>
+
+  <!-- TAB: COMPARATIVO -->
+  <div id="tab-comparativo" class="tab-content">
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-card-title">GRPs Plan vs Real · Por Marca</div>
+        <div class="chart-wrap"><canvas id="chart-pvr"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Cumplimiento % · Por Marca</div>
+        <div class="chart-wrap"><canvas id="chart-cumpl"></canvas></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Detalle por Agrupación de Pauta</div>
+        <div class="section-pill" id="pill-marcas"></div>
+      </div>
+      <div class="table-wrap">
+        <table id="tbl-comp">
+          <thead>
+            <tr>
+              <th>Marca (Plan)</th>
+              <th>CAT</th>
+              <th>Target</th>
+              <th class="num">GRPs Plan</th>
+              <th class="num">GRPs Real (HH)</th>
+              <th class="num">Delta Abs.</th>
+              <th class="num">Delta %</th>
+              <th class="num">Cumpl %</th>
+              <th style="text-align:center">●</th>
+              <th>Estatus</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-comp"></tbody>
+          <tfoot id="tfoot-comp"></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: MIX TV -->
+  <div id="tab-mix-tv" class="tab-content" style="display:none">
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-card-title">GRPs Reales por Televisora (HH)</div>
+        <div class="chart-wrap tall"><canvas id="chart-tv-bar"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Mix % Televisora</div>
+        <div class="chart-wrap tall"><canvas id="chart-tv-pie"></canvas></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-title">Mix por Grupo Televisivo</div></div>
+      <div id="mix-tv-bars"></div>
+      <br/>
+      <div class="table-wrap">
+        <table id="tbl-tv">
+          <thead><tr><th>Network (Grupo TV)</th><th class="num">GRPs Real (HH)</th><th class="num">Mix %</th></tr></thead>
+          <tbody id="tbody-tv"></tbody>
+          <tfoot id="tfoot-tv"></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: MIX DAYPART -->
+  <div id="tab-mix-daypart" class="tab-content" style="display:none">
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-card-title">Mix % Daypart por Televisora (apilado 100%)</div>
+        <div class="chart-wrap tall"><canvas id="chart-dp-stacked"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Mix % Daypart — Total</div>
+        <div class="chart-wrap tall"><canvas id="chart-dp-pie"></canvas></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><div class="section-title">Detalle Daypart por Televisora</div></div>
+      <div class="table-wrap"><table id="tbl-dp"><thead id="thead-dp"></thead><tbody id="tbody-dp"></tbody><tfoot id="tfoot-dp"></tfoot></table></div>
+    </div>
+  </div>
+
+  <!-- TAB: INCIDENCIAS -->
+  <div id="tab-incidencias" class="tab-content" style="display:none">
+    <div class="section">
+      <div class="section-header"><div class="section-title">1. Registros Reales sin Equivalente en Plan</div></div>
+      <div class="inc-list" id="inc-sin-match"></div>
+    </div>
+    <br/>
+    <div class="section">
+      <div class="section-header"><div class="section-title">2. Marcas del Plan sin Datos Reales</div></div>
+      <div class="inc-list" id="inc-sin-datos"></div>
+    </div>
+    <br/>
+    <div class="section">
+      <div class="section-header"><div class="section-title">3. Homologaciones Parciales</div></div>
+      <div class="inc-list" id="inc-parciales"></div>
+    </div>
+  </div>
+
+  <!-- TAB: HOMOLOGACIÓN -->
+  <div id="tab-homologacion" class="tab-content" style="display:none">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Tabla de Homologación Plan → Real</div>
+        <div class="section-pill">Semana en curso</div>
+      </div>
+      <div class="homo-grid" id="homo-grid"></div>
+    </div>
+    <br/>
+    <div class="section">
+      <div class="section-header"><div class="section-title">Semáforo de Cumplimiento</div></div>
+      <div class="inc-list">
+        <div class="inc-item"><span class="sem verde">✓</span><div><div class="inc-label">Verde — Cumplimiento satisfactorio</div><div class="inc-value inc-ok">Delta% ≥ −5% · Real alcanza o supera el plan</div></div></div>
+        <div class="inc-item"><span class="sem amarillo">!</span><div><div class="inc-label">Amarillo — Atención, cumplimiento moderado</div><div class="inc-value inc-warn">Delta% entre −5% y −15%</div></div></div>
+        <div class="inc-item"><span class="sem rojo">✗</span><div><div class="inc-label">Rojo — Incumplimiento significativo</div><div class="inc-value inc-err">Delta% &lt; −15%</div></div></div>
+      </div>
+    </div>
+    <br/>
+    <div class="section">
+      <div class="section-header"><div class="section-title">Daypart Ejecutivo</div></div>
+      <div class="inc-list">
+        <div class="inc-item"><span style="font-family:var(--mono);font-size:12px;color:var(--muted)">00:00–05:59</span><div class="inc-value" style="padding-left:16px">🌙 Madrugada</div></div>
+        <div class="inc-item"><span style="font-family:var(--mono);font-size:12px;color:var(--muted)">06:00–11:59</span><div class="inc-value" style="padding-left:16px">🌅 Mañana</div></div>
+        <div class="inc-item"><span style="font-family:var(--mono);font-size:12px;color:var(--muted)">12:00–18:59</span><div class="inc-value" style="padding-left:16px">☀️ Tarde</div></div>
+        <div class="inc-item"><span style="font-family:var(--mono);font-size:12px;color:var(--muted)">19:00–23:59</span><div class="inc-value" style="padding-left:16px">⭐ Prime</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<footer>GRP Analyzer · Genomma Lab · Post-Evaluación Pautas TV México &nbsp;·&nbsp; Métrica: GRP% HH · <span id="footer-ts"></span></footer>
+
+<script>
+/* ══════════════════════════════════════════════
+   CONSTANTES
+══════════════════════════════════════════════ */
+const HOMOLOGACION = {
+  "CICATRICURE GOLD":              "CICATRICURE GOLD",
+  "LOMECAN V OVULOS":              "LOMECAN 1 OVULO",
+  "MEDICASP":                      "MEDICASP",
+  "NIKZON":                        "NIKZON",
+  "SILKA MEDIC GEL":               "SILKA MEDIC GEL",
+  "SILKA MEDIC SPRAY":             "SILKAMEDIC SPRAY",
+  "TEATRICAL EFECTO PIEL COREANA": "TEATRICAL PIEL COREANA",
+  "TIO NACHO HERBOLARIA":          "TIO NACHO HERBOLARIA MEXICANA",
+  "UNESIA":                        "UNESIA",
+};
+const HOMO_TIPOS = {
+  "CICATRICURE GOLD":"Exacto","LOMECAN V OVULOS":"Parcial","MEDICASP":"Exacto",
+  "NIKZON":"Exacto","SILKA MEDIC GEL":"Exacto","SILKA MEDIC SPRAY":"Parcial",
+  "TEATRICAL EFECTO PIEL COREANA":"Parcial","TIO NACHO HERBOLARIA":"Parcial","UNESIA":"Exacto"
+};
+const DAYPART_MAP = {
+  "00:00:00-05:59:59":"Madrugada","06:00:00-11:59:59":"Mañana",
+  "12:00:00-18:59:59":"Tarde","19:00:00-23:59:59":"Prime"
+};
+const DAYPART_ORDER = ["Madrugada","Mañana","Tarde","Prime"];
+const COL_CAT=3,COL_AP=4,COL_TGT=5,COL_GRPS=12;
+const PLAN_TV_COLS={
+  "GRUPO IMAGEN":13,"IMAGEN Esp.10":14,"TV AZTECA":15,"A&E OLE":16,
+  "DISCOVERY":17,"NBC UNIVERSAL":18,"DISH":19,"WARNER":20,
+  "PARAMOUNT":21,"MULTIMEDIOS":22,"FOX SPORTS - TVAZ":23
+};
+const TV_COLORS = [
+  "#4A9EFF","#F5A623","#3DD68C","#FF5A5A","#C87EF5",
+  "#FF9F45","#5CE1E6","#FFD166","#A8E6CF","#FF6B9D","#6BCB77"
+];
+const DP_COLORS = ["#1F4E79","#4A9EFF","#9DC3E6","#F5A623"];
+
+/* Normalized homologation maps */
+const HOMO_NORM = {};
+const HOMO_INV  = {};
+for(const[k,v] of Object.entries(HOMOLOGACION)){
+  HOMO_NORM[norm(k)] = norm(v);
+  HOMO_INV[v] = k;
+}
+
+/* ══════════════════════════════════════════════
+   GLOBALS
+══════════════════════════════════════════════ */
+let wbPlan=null,wbReal=null;
+let charts={};
+
+/* ══════════════════════════════════════════════
+   UTILITIES
+══════════════════════════════════════════════ */
+function norm(t){
+  if(!t) return "";
+  return String(t).toUpperCase().trim()
+    .replace(/\s+/g," ")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"");
+}
+function fmt2(n){return(+n||0).toFixed(2);}
+function fmt1(n){return(+n||0).toFixed(1);}
+function fmtSign(n){return n>=0?`+${fmt2(n)}`:fmt2(n);}
+function fmtPct(n){return fmt1(n)+"%";}
+function semaforo(dp){
+  if(dp>=-5) return {cls:"verde",icon:"✓"};
+  if(dp>=-15) return {cls:"amarillo",icon:"!"};
+  return {cls:"rojo",icon:"✗"};
+}
+function toast(msg,type="success"){
+  const el=document.getElementById("toast");
+  el.textContent=msg;el.className="show "+(type||"");
+  setTimeout(()=>el.className="",3500);
+}
+function groupBy(arr,key){
+  return arr.reduce((m,v)=>{const k=v[key]||(typeof v[key]==="number"?v[key]:"");(m[k]=m[k]||[]).push(v);return m;},{});
+}
+function sumBy(arr,key){return arr.reduce((s,v)=>s+(parseFloat(v[key])||0),0);}
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+/* ══════════════════════════════════════════════
+   FILE HANDLING
+══════════════════════════════════════════════ */
+function dropFile(ev,type){
+  ev.preventDefault();
+  const file=ev.dataTransfer.files[0];
+  if(file) processFile(file,type);
+}
+function handleFile(input,type){
+  const file=input.files[0];
+  if(file) processFile(file,type);
+}
+function processFile(file,type){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const wb=XLSX.read(new Uint8Array(e.target.result),{type:"array"});
+    if(type==="plan"){
+      wbPlan=wb;
+      document.getElementById("fname-plan").textContent=file.name;
+      document.getElementById("card-plan").classList.add("loaded");
+    } else {
+      wbReal=wb;
+      document.getElementById("fname-real").textContent=file.name;
+      document.getElementById("card-real").classList.add("loaded");
+    }
+    const btn=document.getElementById("btn-analyze");
+    if(wbPlan&&wbReal) btn.disabled=false;
+    toast(`📂 ${file.name} cargado`,"success");
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ══════════════════════════════════════════════
+   READ PLAN
+══════════════════════════════════════════════ */
+function leerPlan(wb){
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true});
+  // data rows index 5-14 (Excel rows 6-15)
+  const dataRows=rows.slice(5,15);
+  const records=[];
+  for(const row of dataRows){
+    const ap=row[COL_AP];
+    if(!ap) continue;
+    const rec={
+      CAT:row[COL_CAT]||"",
+      AP:String(ap).trim(),
+      TARGET:row[COL_TGT]||"",
+      GRPS_PLAN:parseFloat(row[COL_GRPS])||0,
+    };
+    for(const[tv,idx] of Object.entries(PLAN_TV_COLS)){
+      rec[`PLAN_${tv}`]=parseFloat(row[idx])||0;
+    }
+    rec.AP_NORM=norm(rec.AP);
+    rec.AP_REAL_EQUIV=HOMO_NORM[rec.AP_NORM]||null;
+    records.push(rec);
+  }
+  return records;
+}
+
+/* ══════════════════════════════════════════════
+   READ REAL
+══════════════════════════════════════════════ */
+function leerReal(wb){
+  const sheetName=wb.SheetNames.includes("Hoja1")?"Hoja1":wb.SheetNames[0];
+  const ws=wb.Sheets[sheetName];
+  const data=XLSX.utils.sheet_to_json(ws,{defval:null,raw:true});
+  return data.map(row=>{
+    const dp=row["Daypart"]||"";
+    return{
+      AgrupacionPautaNombre:row["AgrupacionPautaNombre"]||"",
+      Network:row["Network"]||"",
+      CanalTotal:row["CanalTotal"]||"",
+      Daypart:dp,
+      DAYPART_EXEC:DAYPART_MAP[dp]||"Sin clasificar",
+      GRPH_HH:parseFloat(row["GRP% HH"])||0,
+      TipoMedio:row["TipoMedio"]||"",
+      Programa:row["Programa"]||"",
+      AP_REAL_NORM:norm(row["AgrupacionPautaNombre"]||""),
+    };
+  });
+}
+
+/* ══════════════════════════════════════════════
+   CRUCE
+══════════════════════════════════════════════ */
+function cruzar(planRecs,realRecs){
+  // aggregate real by AP_REAL_NORM
+  const realAgg={};
+  for(const r of realRecs){
+    realAgg[r.AP_REAL_NORM]=(realAgg[r.AP_REAL_NORM]||0)+r.GRPH_HH;
+  }
+  const merged=planRecs.map(rec=>{
+    const equiv=rec.AP_REAL_EQUIV;
+    const gr=equiv?(realAgg[equiv]||0):0;
+    const da=gr-rec.GRPS_PLAN;
+    const dp=rec.GRPS_PLAN!==0?da/rec.GRPS_PLAN*100:0;
+    const cu=rec.GRPS_PLAN!==0?gr/rec.GRPS_PLAN*100:0;
+    return{...rec,GRPS_REAL:gr,DELTA_ABS:da,DELTA_PCT:dp,CUMPL_PCT:cu,
+      MATCH_STATUS:gr===0?"Sin datos reales":"Match"};
+  });
+  const realesEnHomo=new Set(Object.values(HOMO_NORM));
+  const sinMatch=realRecs.filter(r=>!realesEnHomo.has(r.AP_REAL_NORM));
+  return{merged,sinMatch};
+}
+
+/* ══════════════════════════════════════════════
+   RENDER KPIs
+══════════════════════════════════════════════ */
+function renderKPIs(merged,realRecs){
+  const totPlan=merged.reduce((s,r)=>s+r.GRPS_PLAN,0);
+  const totReal=merged.reduce((s,r)=>s+r.GRPS_REAL,0);
+  const delta=totReal-totPlan;
+  const deltaPct=totPlan?delta/totPlan*100:0;
+  const cumpl=totPlan?totReal/totPlan*100:0;
+  const nMarcas=merged.length;
+  const nRegs=realRecs.length;
+
+  const sem=semaforo(deltaPct);
+  const kpis=[
+    {label:"GRPs Planeados",val:fmt2(totPlan),cls:"",vcls:"accent"},
+    {label:"GRPs Reales (HH)",val:fmt2(totReal),cls:"",vcls:delta>=0?"green":"red"},
+    {label:"Delta Absoluto",val:fmtSign(delta),cls:delta>=0?"green":"red",vcls:delta>=0?"green":"red"},
+    {label:"Cumplimiento",val:fmtPct(cumpl),cls:sem.cls,vcls:sem.cls==="verde"?"green":sem.cls==="amarillo"?"yellow":"red"},
+    {label:"Marcas Analizadas",val:nMarcas,cls:"",vcls:""},
+    {label:"Registros Base Real",val:nRegs.toLocaleString(),cls:"",vcls:""},
+  ];
+  const grid=document.getElementById("kpi-grid");
+  grid.innerHTML="";
+  for(const k of kpis){
+    grid.innerHTML+=`<div class="kpi-card ${k.cls}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value ${k.vcls}">${k.val}</div>
+    </div>`;
+  }
+  document.getElementById("status-dot").className="status-dot ready";
+  document.getElementById("status-text").textContent=`Sem analizada · ${new Date().toLocaleDateString("es-MX")}`;
+}
+
+/* ══════════════════════════════════════════════
+   RENDER COMPARATIVO TABLE + CHARTS
+══════════════════════════════════════════════ */
+function renderComparativo(merged){
+  const tbody=document.getElementById("tbody-comp");
+  tbody.innerHTML="";
+  const labels=[],planVals=[],realVals=[],cumplVals=[];
+
+  for(const r of merged){
+    const sem=semaforo(r.DELTA_PCT);
+    const dpCls=r.DELTA_ABS>=0?"delta-pos":"delta-neg";
+    tbody.innerHTML+=`<tr>
+      <td class="brand">${r.AP}</td>
+      <td>${r.CAT}</td>
+      <td style="font-family:var(--mono);font-size:12px">${r.TARGET}</td>
+      <td class="num">${fmt2(r.GRPS_PLAN)}</td>
+      <td class="num">${fmt2(r.GRPS_REAL)}</td>
+      <td class="num ${dpCls}">${fmtSign(r.DELTA_ABS)}</td>
+      <td class="num ${dpCls}">${fmtSign(r.DELTA_PCT)}%</td>
+      <td class="num">${fmt1(r.CUMPL_PCT)}%</td>
+      <td style="text-align:center"><span class="sem ${sem.cls}">${sem.icon}</span></td>
+      <td style="font-size:11px;color:var(--muted)">${r.MATCH_STATUS}</td>
+    </tr>`;
+    labels.push(r.AP.length>16?r.AP.slice(0,14)+"…":r.AP);
+    planVals.push(r.GRPS_PLAN);
+    realVals.push(r.GRPS_REAL);
+    cumplVals.push(+r.CUMPL_PCT.toFixed(1));
+  }
+
+  // Totals
+  const totPlan=merged.reduce((s,r)=>s+r.GRPS_PLAN,0);
+  const totReal=merged.reduce((s,r)=>s+r.GRPS_REAL,0);
+  const totDa=totReal-totPlan;
+  const totDp=totPlan?totDa/totPlan*100:0;
+  const totCu=totPlan?totReal/totPlan*100:0;
+  const sem=semaforo(totDp);
+  const dpCls=totDa>=0?"delta-pos":"delta-neg";
+  document.getElementById("tfoot-comp").innerHTML=`<tr>
+    <td colspan="3" class="num" style="text-align:left">TOTAL GENERAL</td>
+    <td class="num">${fmt2(totPlan)}</td>
+    <td class="num">${fmt2(totReal)}</td>
+    <td class="num ${dpCls}">${fmtSign(totDa)}</td>
+    <td class="num ${dpCls}">${fmtSign(totDp)}%</td>
+    <td class="num">${fmt1(totCu)}%</td>
+    <td style="text-align:center"><span class="sem ${sem.cls}">${sem.icon}</span></td>
+    <td></td>
+  </tr>`;
+
+  document.getElementById("pill-marcas").textContent=`${merged.length} Marcas`;
+
+  // Charts
+  destroyChart("pvr"); destroyChart("cumpl");
+  const ctx1=document.getElementById("chart-pvr").getContext("2d");
+  charts.pvr=new Chart(ctx1,{
+    type:"bar",
+    data:{
+      labels,
+      datasets:[
+        {label:"Plan",data:planVals,backgroundColor:"rgba(74,158,255,0.85)",borderRadius:4},
+        {label:"Real",data:realVals,backgroundColor:"rgba(61,214,140,0.85)",borderRadius:4},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:"#8898B8",font:{size:11}}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmt2(c.parsed.y)} GRPs`}}},
+      scales:{
+        x:{ticks:{color:"#8898B8",font:{size:10}},grid:{color:"rgba(36,48,72,0.4)"}},
+        y:{ticks:{color:"#8898B8",font:{size:10}},grid:{color:"rgba(36,48,72,0.4)"},title:{display:true,text:"GRPs",color:"#8898B8"}}
+      }
+    }
+  });
+
+  const ctx2=document.getElementById("chart-cumpl").getContext("2d");
+  const bgCols=cumplVals.map(v=>{
+    const dp=v-100;
+    if(dp>=-5) return "rgba(61,214,140,0.85)";
+    if(dp>=-15) return "rgba(255,204,0,0.85)";
+    return "rgba(255,90,90,0.85)";
+  });
+  charts.cumpl=new Chart(ctx2,{
+    type:"bar",
+    data:{labels,datasets:[{label:"Cumplimiento %",data:cumplVals,backgroundColor:bgCols,borderRadius:4}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`Cumpl: ${c.parsed.y.toFixed(1)}%`}}},
+      scales:{
+        x:{ticks:{color:"#8898B8",font:{size:10}},grid:{color:"rgba(36,48,72,0.4)"}},
+        y:{ticks:{color:"#8898B8",font:{size:10}},grid:{color:"rgba(36,48,72,0.4)"},
+           title:{display:true,text:"Cumpl %",color:"#8898B8"},min:0}
+      }
+    }
+  });
+}
+
+/* ══════════════════════════════════════════════
+   RENDER MIX TV
+══════════════════════════════════════════════ */
+function renderMixTV(realRecs){
+  // Aggregate by Network
+  const byNet={};
+  for(const r of realRecs){
+    byNet[r.Network]=(byNet[r.Network]||0)+r.GRPH_HH;
+  }
+  const sorted=Object.entries(byNet).sort((a,b)=>b[1]-a[1]);
+  const total=sorted.reduce((s,[,v])=>s+v,0);
+
+  // Table
+  const tbody=document.getElementById("tbody-tv");
+  tbody.innerHTML="";
+  const labels=[],vals=[];
+  sorted.forEach(([net,grp],i)=>{
+    const pct=total?grp/total*100:0;
+    labels.push(net);vals.push(+grp.toFixed(2));
+    tbody.innerHTML+=`<tr>
+      <td>${net}</td>
+      <td class="num">${fmt2(grp)}</td>
+      <td class="num">${fmt1(pct)}%</td>
+    </tr>`;
+  });
+  document.getElementById("tfoot-tv").innerHTML=`<tr>
+    <td>TOTAL</td><td class="num">${fmt2(total)}</td><td class="num">100.0%</td>
+  </tr>`;
+
+  // Progress bars
+  const barsDiv=document.getElementById("mix-tv-bars");
+  barsDiv.innerHTML="";
+  sorted.forEach(([net,grp],i)=>{
+    const pct=total?grp/total*100:0;
+    barsDiv.innerHTML+=`<div class="progress-row">
+      <div class="progress-label">${net}</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct.toFixed(1)}%;background:${TV_COLORS[i%TV_COLORS.length]}"></div></div>
+      <div class="progress-pct">${fmt1(pct)}%</div>
+    </div>`;
+  });
+
+  // Charts
+  destroyChart("tv-bar"); destroyChart("tv-pie");
+  const ctx1=document.getElementById("chart-tv-bar").getContext("2d");
+  charts["tv-bar"]=new Chart(ctx1,{
+    type:"bar",
+    data:{labels,datasets:[{data:vals,backgroundColor:TV_COLORS,borderRadius:4}]},
+    options:{
+      indexAxis:"y",
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmt2(c.parsed.x)} GRPs (${(c.parsed.x/total*100).toFixed(1)}%)`}}},
+      scales:{
+        x:{ticks:{color:"#8898B8",font:{size:10}},grid:{color:"rgba(36,48,72,0.4)"}},
+        y:{ticks:{color:"#8898B8",font:{size:10}},grid:{display:false}}
+      }
+    }
+  });
+
+  const ctx2=document.getElementById("chart-tv-pie").getContext("2d");
+  charts["tv-pie"]=new Chart(ctx2,{
+    type:"doughnut",
+    data:{labels,datasets:[{data:vals,backgroundColor:TV_COLORS,borderWidth:2,borderColor:"#131929"}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:"right",labels:{color:"#8898B8",font:{size:10},boxWidth:12}},
+        tooltip:{callbacks:{label:c=>`${c.label}: ${fmt2(c.parsed)} GRPs (${(c.parsed/total*100).toFixed(1)}%)`}}
+      }
+    }
+  });
+}
+
+/* ══════════════════════════════════════════════
+   RENDER MIX DAYPART
+══════════════════════════════════════════════ */
+function renderMixDaypart(realRecs){
+  // Pivot: Network × Daypart
+  const networks=[...new Set(realRecs.map(r=>r.Network))].sort();
+  const dpPresent=DAYPART_ORDER.filter(d=>realRecs.some(r=>r.DAYPART_EXEC===d));
+
+  const pivot={};
+  for(const net of networks) pivot[net]={};
+  for(const r of realRecs){
+    const net=r.Network;
+    const dp=r.DAYPART_EXEC;
+    pivot[net][dp]=(pivot[net][dp]||0)+r.GRPH_HH;
+  }
+  for(const net of networks){
+    const tot=dpPresent.reduce((s,d)=>s+(pivot[net][d]||0),0);
+    pivot[net]._TOTAL=tot;
+    for(const dp of dpPresent) pivot[net][`MIX_${dp}`]=tot?((pivot[net][dp]||0)/tot*100):0;
+  }
+
+  // Table
+  const thead=document.getElementById("thead-dp");
+  thead.innerHTML=`<tr><th>Network</th>${dpPresent.map(d=>`<th class="num">${d}</th>`).join("")}<th class="num">Total GRPs</th>${dpPresent.map(d=>`<th class="num">Mix% ${d}</th>`).join("")}</tr>`;
+
+  const tbody=document.getElementById("tbody-dp");
+  tbody.innerHTML="";
+  const totDpByDp={};
+  for(const net of networks){
+    const row=pivot[net];
+    tbody.innerHTML+=`<tr>
+      <td>${net}</td>
+      ${dpPresent.map(d=>`<td class="num">${fmt2(row[d]||0)}</td>`).join("")}
+      <td class="num">${fmt2(row._TOTAL||0)}</td>
+      ${dpPresent.map(d=>`<td class="num">${fmt1(row[`MIX_${d}`]||0)}%</td>`).join("")}
+    </tr>`;
+    for(const dp of dpPresent) totDpByDp[dp]=(totDpByDp[dp]||0)+(row[dp]||0);
+  }
+  const grandTot=dpPresent.reduce((s,d)=>s+(totDpByDp[d]||0),0);
+  document.getElementById("tfoot-dp").innerHTML=`<tr>
+    <td>TOTAL</td>
+    ${dpPresent.map(d=>`<td class="num">${fmt2(totDpByDp[d]||0)}</td>`).join("")}
+    <td class="num">${fmt2(grandTot)}</td>
+    ${dpPresent.map(d=>`<td class="num">${fmt1(grandTot?((totDpByDp[d]||0)/grandTot*100):0)}%</td>`).join("")}
+  </tr>`;
+
+  // Stacked 100% chart
+  destroyChart("dp-stacked"); destroyChart("dp-pie");
+  const ctx1=document.getElementById("chart-dp-stacked").getContext("2d");
+  const datasets=dpPresent.map((dp,i)=>({
+    label:dp,
+    data:networks.map(net=>+(pivot[net][`MIX_${dp}`]||0).toFixed(1)),
+    backgroundColor:DP_COLORS[i%DP_COLORS.length],
+    borderWidth:0,
+  }));
+  charts["dp-stacked"]=new Chart(ctx1,{
+    type:"bar",
+    data:{labels:networks,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:"#8898B8",font:{size:10}}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}}},
+      scales:{
+        x:{stacked:true,ticks:{color:"#8898B8",font:{size:10}},grid:{color:"rgba(36,48,72,0.4)"}},
+        y:{stacked:true,ticks:{color:"#8898B8",font:{size:10}},grid:{color:"rgba(36,48,72,0.4)"},
+           title:{display:true,text:"Mix %",color:"#8898B8"},max:100}
+      }
+    }
+  });
+
+  // Pie total daypart
+  const dpTotals=dpPresent.map(d=>+(totDpByDp[d]||0).toFixed(2));
+  const ctx2=document.getElementById("chart-dp-pie").getContext("2d");
+  charts["dp-pie"]=new Chart(ctx2,{
+    type:"doughnut",
+    data:{labels:dpPresent,datasets:[{data:dpTotals,backgroundColor:DP_COLORS,borderWidth:2,borderColor:"#131929"}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:"right",labels:{color:"#8898B8",font:{size:11},boxWidth:12}},
+        tooltip:{callbacks:{label:c=>`${c.label}: ${fmt2(c.parsed)} GRPs (${grandTot?(c.parsed/grandTot*100).toFixed(1):0}%)`}}
+      }
+    }
+  });
+}
+
+/* ══════════════════════════════════════════════
+   RENDER INCIDENCIAS
+══════════════════════════════════════════════ */
+function renderIncidencias(merged,sinMatch){
+  // 1. Sin match
+  const el1=document.getElementById("inc-sin-match");
+  if(sinMatch.length===0){
+    el1.innerHTML=`<div class="inc-item"><span class="inc-icon">✅</span><div class="inc-value inc-ok">Sin registros reales fuera del plan</div></div>`;
+  } else {
+    // Aggregate by AP name
+    const byAP={};
+    for(const r of sinMatch) byAP[r.AgrupacionPautaNombre]=(byAP[r.AgrupacionPautaNombre]||0)+r.GRPH_HH;
+    el1.innerHTML=Object.entries(byAP).map(([ap,grp])=>`
+      <div class="inc-item">
+        <span class="inc-icon">⚠️</span>
+        <div>
+          <div class="inc-label">Real sin equivalente en plan</div>
+          <div class="inc-value inc-warn">${ap} &nbsp;<span style="color:var(--muted);font-family:var(--mono);font-size:12px">${fmt2(grp)} GRP% HH</span></div>
+        </div>
+      </div>`).join("");
+  }
+
+  // 2. Sin datos reales
+  const el2=document.getElementById("inc-sin-datos");
+  const sinDatos=merged.filter(r=>r.GRPS_REAL===0);
+  if(sinDatos.length===0){
+    el2.innerHTML=`<div class="inc-item"><span class="inc-icon">✅</span><div class="inc-value inc-ok">Todas las marcas del plan tienen datos reales</div></div>`;
+  } else {
+    el2.innerHTML=sinDatos.map(r=>`
+      <div class="inc-item">
+        <span class="inc-icon">🔴</span>
+        <div>
+          <div class="inc-label">Sin datos en base real</div>
+          <div class="inc-value inc-err">${r.AP} (Plan: ${fmt2(r.GRPS_PLAN)} GRPs)</div>
+        </div>
+      </div>`).join("");
+  }
+
+  // 3. Parciales
+  const el3=document.getElementById("inc-parciales");
+  const parciales=Object.entries(HOMOLOGACION).filter(([k,v])=>k!==v);
+  el3.innerHTML=parciales.map(([plan,real])=>`
+    <div class="inc-item">
+      <span class="inc-icon">🟡</span>
+      <div>
+        <div class="inc-label">Homologación parcial — confirmada por usuario</div>
+        <div class="inc-value inc-warn" style="font-family:var(--mono);font-size:12px">
+          ${plan} <span style="color:var(--muted)">→</span> ${real}
+        </div>
+      </div>
+    </div>`).join("");
+}
+
+/* ══════════════════════════════════════════════
+   RENDER HOMOLOGACIÓN
+══════════════════════════════════════════════ */
+function renderHomologacion(){
+  const grid=document.getElementById("homo-grid");
+  grid.innerHTML="";
+  for(const[plan,real] of Object.entries(HOMOLOGACION)){
+    const tipo=HOMO_TIPOS[plan]||"Manual";
+    grid.innerHTML+=`<div class="homo-card">
+      <div class="homo-left">${plan}</div>
+      <div class="homo-arrow">→</div>
+      <div class="homo-right">${real}</div>
+      <span class="homo-badge ${tipo.toLowerCase()}">${tipo}</span>
+    </div>`;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   TABS
+══════════════════════════════════════════════ */
+function showTab(id){
+  document.querySelectorAll(".tab-content").forEach(el=>el.style.display="none");
+  document.querySelectorAll(".tab").forEach(el=>el.classList.remove("active"));
+  document.getElementById("tab-"+id).style.display="block";
+  const tabs=document.querySelectorAll(".tab");
+  const names=["comparativo","mix-tv","mix-daypart","incidencias","homologacion"];
+  const idx=names.indexOf(id);
+  if(idx>=0) tabs[idx].classList.add("active");
+}
+
+/* ══════════════════════════════════════════════
+   MAIN ANALYZE
+══════════════════════════════════════════════ */
+function analyze(){
+  const btn=document.getElementById("btn-analyze");
+  btn.textContent="⟳ Procesando...";btn.className="btn-analyze processing";
+
+  setTimeout(()=>{
+    try{
+      const planRecs=leerPlan(wbPlan);
+      const realRecs=leerReal(wbReal);
+      if(planRecs.length===0) throw new Error("No se encontraron datos en el plan (filas 6-15 vacías)");
+      if(realRecs.length===0) throw new Error("No se encontraron datos en la base real");
+
+      const{merged,sinMatch}=cruzar(planRecs,realRecs);
+
+      // Render everything
+      renderKPIs(merged,realRecs);
+      renderComparativo(merged);
+      renderMixTV(realRecs);
+      renderMixDaypart(realRecs);
+      renderIncidencias(merged,sinMatch);
+      renderHomologacion();
+
+      // Show dashboard
+      document.getElementById("upload-section").style.display="none";
+      const dash=document.getElementById("dashboard");
+      dash.style.display="block";
+      dash.classList.add("visible");
+
+      document.getElementById("footer-ts").textContent=new Date().toLocaleString("es-MX");
+      toast(`✓ Análisis completado · ${planRecs.length} marcas · ${realRecs.length} registros reales`,"success");
+    }catch(e){
+      console.error(e);
+      toast(`✗ Error: ${e.message}`,"error");
+      btn.textContent="Generar Análisis →";btn.className="btn-analyze";
+    }
+  },80);
+}
+
+/* ══════════════════════════════════════════════
+   RESET
+══════════════════════════════════════════════ */
+function reset(){
+  wbPlan=null;wbReal=null;
+  Object.values(charts).forEach(c=>c.destroy());
+  charts={};
+  document.getElementById("upload-section").style.display="block";
+  document.getElementById("dashboard").style.display="none";
+  ["plan","real"].forEach(t=>{
+    document.getElementById(`card-${t}`).classList.remove("loaded");
+    document.getElementById(`fname-${t}`).textContent="";
+    document.getElementById(`file-${t}`).value="";
+  });
+  document.getElementById("btn-analyze").disabled=true;
+  document.getElementById("btn-analyze").textContent="Generar Análisis →";
+  document.getElementById("btn-analyze").className="btn-analyze";
+  document.getElementById("status-dot").className="status-dot";
+  document.getElementById("status-text").textContent="Sin datos cargados";
+}
+
+// Polyfill for pipe operator used in template literal
+// Replace with simple function
+</script>
+
+</body>
+</html>
